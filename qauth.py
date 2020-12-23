@@ -9,8 +9,8 @@ backend = BasicAer.get_backend('qasm_simulator')
 
 # protocol implementation
 class qauth_simulator:
-    def __init__(self, securitylevel, eps, db, user_access, levels2concurr):
-        self._securitylevel = securitylevel
+    def __init__(self, N, eps, db, user_access, levels2concurr):
+        self._N = N
         self._eps = eps
         self._db = db
         self._user_access = user_access
@@ -50,7 +50,7 @@ class qauth_simulator:
     def expected_nrwins_chsh(self, level):
         C = self._levels2concurr[level]
         w = 0.5 + 0.25*sqrt(1+C**2)
-        return round(self._securitylevel*w)
+        return round(self._N*w)
 
     def play_chsh_run(self, user):
         C = self._levels2concurr[self._user_access[user]]
@@ -85,7 +85,7 @@ class qauth_simulator:
 
     def play_all_chsh(self, user):
         nr_wins = 0
-        for _ in range(self._securitylevel):
+        for _ in range(self._N):
             s, t, ca, cb = self.play_chsh_run(user)
             nr_wins += self.chsh_predicate(s, t, ca, cb)
         return nr_wins
@@ -96,7 +96,7 @@ class qauth_simulator:
         expected_wins = self.expected_nrwins_chsh(user_level)
         print("runs won:", nr_wins)
         print("expected:", expected_wins)
-        print("delta is:", self._eps)
+        print("epsilon is:", self._eps)
         # authorizer checks if the number of wins is as predicted (up to eps)
         if abs(nr_wins - expected_wins) <= self._eps:
             print(self._db[:user_level])
@@ -105,22 +105,21 @@ class qauth_simulator:
 
 
 if __name__ == "__main__":
-    securitylevel = 1000 # security parameter
-    epsilon = 10 # error interval allowed
+    # lambda = 128, l = 4
+    N = 16384 # number of iterations
+    epsilon = 1536 # error interval allowed
 
-    db = ["dblevel1", "dblevel2", "dblevel3", "dblevel4", "dblevel5"]
+    db = ["dblevel1", "dblevel2", "dblevel3", "dblevel4"]
 
-    levels2concurr = {1: 0.2,
-                      2: 0.4,
-                      3: 0.6,
-                      4: 0.8,
-                      5: 1.0}
+    levels2concurr = {1: 0.25,
+                      2: 0.5,
+                      3: 0.75,
+                      4: 1}
 
     user_access = {"user1": 1,
                    "user2": 2,
                    "user3": 3,
-                   "user4": 4,
-                   "user5": 5}
+                   "user4": 4}
 
-    q = qauth_simulator(securitylevel, epsilon, db, user_access, levels2concurr)
+    q = qauth_simulator(N, epsilon, db, user_access, levels2concurr)
     q.authorize('user4')
